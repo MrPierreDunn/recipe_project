@@ -1,0 +1,7 @@
+SHOPPING_CART_NAME = 'user_shopping_cart.pdf'
+SELF_SUB = 'Пользователь не может подписаться сам на себя.'
+DOUBLE_SUB = 'Нельзя дважды подписаться на одного юзера.'
+NO_EXIST_SUB = 'Подписка уже удалена либо не была ранее создана.'
+RECIPE_ALREADY_EXISTS = 'Рецепт уже добавлен'
+RECIPE_NOT_FOUND = 'Рецепт не найден'
+RECIPE_NOT_ADD = 'Рецепт не был добавлен'
