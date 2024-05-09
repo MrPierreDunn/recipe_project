@@ -1,8 +1,8 @@
 import csv
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from foodgram.settings import BASE_DIR
 from recipes.models import Ingredient
 
 
@@ -20,7 +20,7 @@ action = {
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
-        path = str(BASE_DIR.joinpath('data').resolve()) + '/'
+        path = str(settings.BASE_DIR.joinpath('data').resolve()) + '/'
         for key in action:
             with open(path + key, 'r', encoding='utf-8') as file:
                 reader = csv.reader(file)

@@ -1,6 +1,5 @@
+from django.conf import settings
 from django.contrib import admin
-
-from foodgram.settings import EMPTY_VALUE_ADMIN_PANEL
 
 from .models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                      ShoppingCart, Tag)
@@ -17,7 +16,7 @@ class RecipeIngredientAmountAdmin(admin.ModelAdmin):
     list_display_links = ('ingredient', 'recipe')
     list_editable = ('amount',)
     search_fields = ('ingredients', 'recipe')
-    empty_value_display = EMPTY_VALUE_ADMIN_PANEL
+    empty_value_display = settings.EMPTY_VALUE_ADMIN_PANEL
 
 
 @admin.register(Favorite)
@@ -25,7 +24,7 @@ class FavoriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     list_filter = ('id', 'user')
     search_fields = ('user',)
-    empty_value_display = EMPTY_VALUE_ADMIN_PANEL
+    empty_value_display = settings.EMPTY_VALUE_ADMIN_PANEL
 
 
 @admin.register(Ingredient)
@@ -33,7 +32,7 @@ class IngredientAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'measurement_unit')
     search_fields = ('name', 'measurement_unit')
     list_filter = ('name',)
-    empty_value_display = EMPTY_VALUE_ADMIN_PANEL
+    empty_value_display = settings.EMPTY_VALUE_ADMIN_PANEL
 
 
 @admin.register(Recipe)
@@ -50,7 +49,7 @@ class RecipeAdmin(admin.ModelAdmin):
         'ingredients__name'
     )
     inlines = (RecipeIngredientAdmin,)
-    empty_value_display = EMPTY_VALUE_ADMIN_PANEL
+    empty_value_display = settings.EMPTY_VALUE_ADMIN_PANEL
 
     @admin.display(description='Игредиенты')
     def get_ingredients(self, obj):
@@ -76,7 +75,7 @@ class ShoppingCartAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     list_filter = ('user', 'recipe')
     search_fields = ('user', 'recipe')
-    empty_value_display = EMPTY_VALUE_ADMIN_PANEL
+    empty_value_display = settings.EMPTY_VALUE_ADMIN_PANEL
 
 
 @admin.register(Tag)
@@ -85,4 +84,4 @@ class TagAdmin(admin.ModelAdmin):
     list_filter = ('name',)
     list_editable = ('name', 'color', 'slug')
     search_fields = ('name', 'slug', 'color')
-    empty_value_display = EMPTY_VALUE_ADMIN_PANEL
+    empty_value_display = settings.EMPTY_VALUE_ADMIN_PANEL

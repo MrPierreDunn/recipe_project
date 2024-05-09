@@ -2,18 +2,11 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from .constants import (MAX_EMAIL_LENGTH, MAX_FNAME_LENGTH, MAX_LNAME_LENGTH,
-                        MAX_ROLE_LENGTH, MAX_USERNAME_LENGTH)
+                        MAX_USERNAME_LENGTH)
 from .validators import validate_username_uniqueness
 
-USER = 'user'
-ADMIN = 'admin'
-USER_ROLE = [
-    ('user', USER),
-    ('admin', ADMIN),
-]
 
-
-class MyUser(AbstractUser):
+class Member(AbstractUser):
     username = models.CharField(
         max_length=MAX_USERNAME_LENGTH,
         unique=True,
@@ -32,12 +25,6 @@ class MyUser(AbstractUser):
     last_name = models.CharField(
         max_length=MAX_LNAME_LENGTH,
         verbose_name='Фамилия'
-    )
-    role = models.CharField(
-        max_length=MAX_ROLE_LENGTH,
-        choices=USER_ROLE,
-        default='user',
-        verbose_name='Роль пользователя'
     )
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name', 'password']
@@ -59,13 +46,13 @@ class MyUser(AbstractUser):
 
 class Follow(models.Model):
     user = models.ForeignKey(
-        MyUser,
+        Member,
         related_name='sub_user',
         on_delete=models.CASCADE,
         verbose_name='Подписчик'
     )
     author = models.ForeignKey(
-        MyUser,
+        Member,
         related_name='sub_author',
         on_delete=models.CASCADE,
         verbose_name='Автор'
