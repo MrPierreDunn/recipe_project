@@ -1,7 +1,6 @@
 import io
 from pathlib import Path
 
-from django.db.models import Sum
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -14,7 +13,7 @@ EMPTY_CART_TITLE = 'Список покупок пуст'
 FONTS_DIR = Path('./static/fonts/DejaVuSerif.ttf').resolve()
 
 
-def download_pdf_shopping_cart(user):
+def download_pdf_shopping_cart(user, ingredients_list):
     buffer = io.BytesIO()
     pdf_page = canvas.Canvas(buffer, pagesize=letter)
 
@@ -22,12 +21,6 @@ def download_pdf_shopping_cart(user):
     pdf_page.setFont('DejaVuSerif', 14)
 
     x_value, y_value = 20, 635
-
-    ingredients_list = IngredientRecipe.objects.filter(
-        recipe__shopping_cart__user=user
-    ).values('ingredient__name', 'ingredient__measurement_unit').annotate(
-        total_amount=Sum('amount')
-    )
 
     if ingredients_list:
         pdf_page.drawCentredString(315, 700, CART_TITLE)

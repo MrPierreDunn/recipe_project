@@ -7,8 +7,10 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db.models import Sum
+from django.db.models import Exists, OuterRef
 
-from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
+from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag, IngredientRecipe
 from user.models import Follow
 
 from .constants import (DOUBLE_SUB, NO_EXIST_SUB, RECIPE_ALREADY_EXISTS,
@@ -21,7 +23,7 @@ from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeWriteSerializer, ShortRecipeSerializer,
                           SubscriptionSerializer, TagSerializer,
                           UserReadSerializer)
-from .utils import download_pdf_shopping_cart
+from .pdf_generator import download_pdf_shopping_cart
 
 User = get_user_model()
 
@@ -33,59 +35,54 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
     pagination_class = RecipePaginator
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
-    def get_image_url(self, obj):
-        if obj.image:
-            return obj.image.url
-        return None
-
-    def favorite_or_shopping_cart(self, model, pk, request):
+    def create_favorite_or_cart(self, model, pk, request):
         user = request.user
-
-        try:
-            recipe = Recipe.objects.get(pk=pk)
-        except Recipe.DoesNotExist:
+        if not Recipe.objects.filter(pk=pk).exists():
             return Response(
                 {'message': RECIPE_NOT_FOUND},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-        queryset = model.objects.filter(user=user, recipe=recipe)
-
-        if request.method == 'POST':
-            if queryset.exists():
-                return Response(
-                    {'message': RECIPE_ALREADY_EXISTS},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            serializer = ShortRecipeSerializer(
-                recipe,
-                context={'request': request}
+        recipe = Recipe.objects.get(pk=pk)
+        if model.objects.filter(user=user, recipe=recipe).exists():
+            return Response(
+                {'message': RECIPE_ALREADY_EXISTS},
+                status=status.HTTP_400_BAD_REQUEST
             )
-            model.objects.create(user=user, recipe=recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer = ShortRecipeSerializer(
+            recipe,
+            context={'request': request}
+        )
+        model.objects.create(user=user, recipe=recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == 'DELETE':
-            if not queryset.exists():
-                return Response(
-                    {'message': RECIPE_NOT_ADD},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            queryset.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete_favorite_or_cart(self, model, pk, request):
+        user = request.user
+        recipe = get_object_or_404(Recipe, pk=pk)
+        queryset = model.objects.filter(user=user, recipe=recipe)
+        deleted_count, _ = queryset.delete()
+        if deleted_count == 0:
+            return Response(
+                {'message': RECIPE_NOT_ADD},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['GET'])
     def download_shopping_cart(self, request):
-        user = request.user
-        buffer = download_pdf_shopping_cart(user)
-        filename = f'{user.username}\'s-{SHOPPING_CART_NAME}'
+        ingredients_list = IngredientRecipe.objects.filter(
+            recipe__shopping_cart__user=request.user
+        ).values('ingredient__name', 'ingredient__measurement_unit').annotate(
+            total_amount=Sum('amount')
+        )
+
+        buffer = download_pdf_shopping_cart(request.user, ingredients_list)
+        filename = f'{request.user.username}\'s-{SHOPPING_CART_NAME}'
         return FileResponse(
             buffer,
             as_attachment=True,
@@ -100,9 +97,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         model = ShoppingCart
-        return self.favorite_or_shopping_cart(
-            model, pk, request
-        )
+        if request.method == 'POST':
+            return self.create_favorite_or_cart(model, pk, request)
+        elif request.method == 'DELETE':
+            return self.delete_favorite_or_cart(model, pk, request)
 
     @action(
         detail=True,
@@ -112,9 +110,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk):
         model = Favorite
-        return self.favorite_or_shopping_cart(
-            model, pk, request
-        )
+        if request.method == 'POST':
+            return self.create_favorite_or_cart(model, pk, request)
+        elif request.method == 'DELETE':
+            return self.delete_favorite_or_cart(model, pk, request)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -175,12 +174,12 @@ class UserViewSet(UserViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
-            if not subscription:
+            deleted_count, _ = subscription.delete()
+            if deleted_count == 0:
                 return Response(
                     {'message': NO_EXIST_SUB},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 

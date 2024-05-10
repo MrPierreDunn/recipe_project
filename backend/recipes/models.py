@@ -148,7 +148,7 @@ class Recipe(models.Model):
     )
     text = models.TextField(verbose_name='Описание рецепта')
     cooking_time = models.PositiveSmallIntegerField(
-        default=1,
+        null=False,
         validators=[
             MinValueValidator(
                 MIN_AMOUNT,

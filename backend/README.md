@@ -51,11 +51,6 @@ GET api/ingredients/{id} - получить ингредиент по ID
 # Pagination
 
 
-Описана в документации найти подходящий https://www.django-rest-framework.org/api-guide/pagination/
-
-LimitOffset
-
-
 http://localhost/api/users/subscriptions/?page=1&limit=5&recipes_limit=10
 
 ?page=1&limit=5&recipes_limit=10 - доступ к ним через self.kwargs или self.request.kwargs
