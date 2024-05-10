@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -7,10 +8,9 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Sum
-from django.db.models import Exists, OuterRef
 
-from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag, IngredientRecipe
+from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                            ShoppingCart, Tag)
 from user.models import Follow
 
 from .constants import (DOUBLE_SUB, NO_EXIST_SUB, RECIPE_ALREADY_EXISTS,
@@ -18,12 +18,12 @@ from .constants import (DOUBLE_SUB, NO_EXIST_SUB, RECIPE_ALREADY_EXISTS,
                         SHOPPING_CART_NAME)
 from .filters import IngredientFilter, RecipeFilter
 from .pagination import RecipePaginator
+from .pdf_generator import download_pdf_shopping_cart
 from .permissions import IsOwnerOrReadOnly, IsUserAuthenticated
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeWriteSerializer, ShortRecipeSerializer,
                           SubscriptionSerializer, TagSerializer,
                           UserReadSerializer)
-from .pdf_generator import download_pdf_shopping_cart
 
 User = get_user_model()
 

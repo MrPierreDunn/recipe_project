@@ -6,8 +6,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from recipes.models import IngredientRecipe
-
 CART_TITLE = 'СПИСОК ПОКУПОК'
 EMPTY_CART_TITLE = 'Список покупок пуст'
 FONTS_DIR = Path('./static/fonts/DejaVuSerif.ttf').resolve()

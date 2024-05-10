@@ -1,11 +1,12 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Count
 from djoser.serializers import UserSerializer
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
-from django.db import transaction
 
-from recipes.models import Ingredient, IngredientRecipe, Recipe, Tag, Favorite, ShoppingCart
+from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                            ShoppingCart, Tag)
 from user.models import Follow
 
 User = get_user_model()
@@ -165,7 +166,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                 f'Данный рецепт "{recipe_name}" уже существует.'
             )
         return data
-    
+
     def create_ingredients(self, recipe, ingredients):
         for ingredient in ingredients:
             ingredient_id = ingredient['id']
@@ -283,7 +284,7 @@ class SubscriptionSerializer(serializers.ModelSerializer,
             count_recipes=Count('name')
         )
         return results['count_recipes']
-    
+
 
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -294,7 +295,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         recipe = attrs.get('recipe')
         if Favorite.objects.filter(user=user, recipe=recipe).exists():
-            raise serializers.ValidationError("Рецепт уже добавлен в избранное")
+            raise serializers.ValidationError(
+                "Рецепт уже добавлен в избранное"
+            )
         return attrs
 
 
@@ -307,7 +310,9 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         recipe = attrs.get('recipe')
         if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-            raise serializers.ValidationError("Рецепт уже добавлен в корзину покупок")
+            raise serializers.ValidationError(
+                "Рецепт уже добавлен в корзину покупок"
+            )
         return attrs
 
 
@@ -320,9 +325,13 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user
         if value == user:
-            raise serializers.ValidationError('Вы не можете подписаться на себя')
+            raise serializers.ValidationError(
+                'Вы не можете подписаться на себя'
+            )
         if Follow.objects.filter(user=user, author=value).exists():
-            raise serializers.ValidationError('Вы уже подписаны на этого пользователя')
+            raise serializers.ValidationError(
+                'Вы уже подписаны на этого пользователя'
+            )
         return value
 
     def create(self, validated_data):
