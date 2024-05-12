@@ -3,11 +3,10 @@ from django.db import transaction
 from django.db.models import Count
 from djoser.serializers import UserSerializer
 from drf_base64.fields import Base64ImageField
-from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                             ShoppingCart, Tag)
+from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 from user.models import Follow
 
 User = get_user_model()
@@ -21,8 +20,8 @@ class IsSubscribedMethod:
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
         return bool(
-            request and request.user.is_authenticated and
-            request.user.sub_user.filter(author=obj).exists()
+            request and request.user.is_authenticated
+            and request.user.sub_user.filter(author=obj).exists()
         )
 
 
@@ -216,20 +215,20 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     def get_is_favorited(self, obj):
         request = self.context.get('request')
         return bool(
-            request and request.user.is_authenticated and
-            request.user.favorite_recipe.filter(recipe=obj).exists()
+            request and request.user.is_authenticated
+            and request.user.favorite_recipe.filter(recipe=obj).exists()
         )
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
         return bool(
-            request and request.user.is_authenticated and
-            request.user.shopping_cart.filter(recipe=obj).exists()
+            request and request.user.is_authenticated
+            and request.user.shopping_cart.filter(recipe=obj).exists()
         )
-    
-    def get_image_url(self, obj): 
-        if obj.image: 
-            return obj.image.url 
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
         return None
 
 

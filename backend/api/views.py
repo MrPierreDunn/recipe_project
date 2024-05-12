@@ -4,14 +4,12 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
+from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                            ShoppingCart, Tag)
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import serializers
-
-from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                            ShoppingCart, Tag)
 from user.models import Follow
 
 from .constants import (DOUBLE_SUB, NO_EXIST_SUB, RECIPE_ALREADY_EXISTS,
@@ -22,9 +20,9 @@ from .pagination import RecipePaginator
 from .pdf_generator import download_pdf_shopping_cart
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
-                          RecipeWriteSerializer, ShortRecipeSerializer, ShoppingCartSerializer,
+                          RecipeWriteSerializer, ShortRecipeSerializer,
                           SubscriptionSerializer, TagSerializer,
-                          UserReadSerializer, FavoriteSerializer)
+                          UserReadSerializer)
 
 User = get_user_model()
 
