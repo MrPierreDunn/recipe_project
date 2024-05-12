@@ -8,6 +8,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import serializers
 
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                             ShoppingCart, Tag)
@@ -19,11 +20,11 @@ from .constants import (DOUBLE_SUB, NO_EXIST_SUB, RECIPE_ALREADY_EXISTS,
 from .filters import IngredientFilter, RecipeFilter
 from .pagination import RecipePaginator
 from .pdf_generator import download_pdf_shopping_cart
-from .permissions import IsOwnerOrReadOnly, IsUserAuthenticated
+from .permissions import IsOwnerOrReadOnly
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
-                          RecipeWriteSerializer, ShortRecipeSerializer,
+                          RecipeWriteSerializer, ShortRecipeSerializer, ShoppingCartSerializer,
                           SubscriptionSerializer, TagSerializer,
-                          UserReadSerializer)
+                          UserReadSerializer, FavoriteSerializer)
 
 User = get_user_model()
 
@@ -79,7 +80,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe__shopping_cart__user=request.user
         ).values('ingredient__name', 'ingredient__measurement_unit').annotate(
             total_amount=Sum('amount')
-        )
+        ).order_by('ingredient__name', 'ingredient__measurement_unit')
 
         buffer = download_pdf_shopping_cart(request.user, ingredients_list)
         filename = f'{request.user.username}\'s-{SHOPPING_CART_NAME}'
@@ -91,29 +92,33 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=('post', 'delete'),
-        permission_classes=(IsAuthenticated,),
+        methods=['post'],
+        permission_classes=[IsAuthenticated],
         url_name='shopping_cart'
     )
     def shopping_cart(self, request, pk=None):
         model = ShoppingCart
-        if request.method == 'POST':
-            return self.create_favorite_or_cart(model, pk, request)
-        elif request.method == 'DELETE':
-            return self.delete_favorite_or_cart(model, pk, request)
+        return self.create_favorite_or_cart(model, pk, request)
+
+    @shopping_cart.mapping.delete
+    def shopping_cart_delete(self, request, pk=None):
+        model = ShoppingCart
+        return self.delete_favorite_or_cart(model, pk, request)
 
     @action(
         detail=True,
-        methods=('post', 'delete'),
-        permission_classes=(IsAuthenticated,),
+        methods=['post'],
+        permission_classes=[IsAuthenticated],
         url_name='favorite'
     )
     def favorite(self, request, pk):
         model = Favorite
-        if request.method == 'POST':
-            return self.create_favorite_or_cart(model, pk, request)
-        elif request.method == 'DELETE':
-            return self.delete_favorite_or_cart(model, pk, request)
+        return self.create_favorite_or_cart(model, pk, request)
+
+    @favorite.mapping.delete
+    def favorite_delete(self, request, pk):
+        model = Favorite
+        return self.delete_favorite_or_cart(model, pk, request)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -129,7 +134,7 @@ class UserViewSet(UserViewSet):
 
     def get_permissions(self):
         if self.action == 'me':
-            return [IsUserAuthenticated()]
+            return [IsAuthenticated()]
         return super().get_permissions()
 
     @action(

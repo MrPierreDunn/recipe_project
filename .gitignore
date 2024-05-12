@@ -131,6 +131,7 @@ dmypy.json
 # .idea
 .idea
 infra_dev
+collected_static
 
 
 .vscode

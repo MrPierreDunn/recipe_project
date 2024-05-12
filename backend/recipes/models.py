@@ -133,7 +133,7 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='recipe',
+        related_name='recipes',
         db_index=True,
     )
     ingredients = models.ManyToManyField(
@@ -169,14 +169,6 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name[:settings.MAX_LEN_TITLE]
-
-    @property
-    def is_favorite(self):
-        return self.favorite_recipe.filter(user=self.author).exists()
-
-    @property
-    def is_in_shopping_cart(self):
-        return self.shopping_cart.filter(user=self.author).exists()
 
 
 class BaseRecipeRelation(models.Model):
