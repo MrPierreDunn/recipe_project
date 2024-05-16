@@ -11,6 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from user.models import Follow
+from rest_framework.exceptions import ValidationError
 
 from .constants import (DOUBLE_SUB, NO_EXIST_SUB, RECIPE_ALREADY_EXISTS,
                         RECIPE_NOT_ADD, RECIPE_NOT_FOUND, SELF_SUB,
@@ -19,10 +20,10 @@ from .filters import IngredientFilter, RecipeFilter
 from .pagination import RecipePaginator
 from .pdf_generator import download_pdf_shopping_cart
 from .permissions import IsOwnerOrReadOnly
-from .serializers import (IngredientSerializer, RecipeReadSerializer,
-                          RecipeWriteSerializer, ShortRecipeSerializer,
-                          SubscriptionSerializer, TagSerializer,
-                          UserReadSerializer)
+from .serializers import (IngredientSerializer, RecipeReadSerializer, 
+                          RecipeWriteSerializer, ShortRecipeSerializer, SubscriptionCreateSerializer,
+                          SubscriptionSerializer, TagSerializer,ShoppingCartSerializer,
+                          UserReadSerializer, FavoriteSerializer)
 
 User = get_user_model()
 
@@ -39,24 +40,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
-    def create_favorite_or_cart(self, model, pk, request):
+    def create_favorite_or_cart(self, serializer_class, pk, request):
         user = request.user
-        if not Recipe.objects.filter(pk=pk).exists():
-            return Response(
-                {'message': RECIPE_NOT_FOUND},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        recipe = Recipe.objects.get(pk=pk)
-        if model.objects.filter(user=user, recipe=recipe).exists():
-            return Response(
-                {'message': RECIPE_ALREADY_EXISTS},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        serializer = ShortRecipeSerializer(
-            recipe,
-            context={'request': request}
-        )
-        model.objects.create(user=user, recipe=recipe)
+        data = {'user': user.id, 'recipe': pk}
+        serializer = serializer_class(data=data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_favorite_or_cart(self, model, pk, request):
@@ -95,8 +84,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         url_name='shopping_cart'
     )
     def shopping_cart(self, request, pk=None):
-        model = ShoppingCart
-        return self.create_favorite_or_cart(model, pk, request)
+        serializer_class = ShoppingCartSerializer
+        return self.create_favorite_or_cart(serializer_class, pk, request)
 
     @shopping_cart.mapping.delete
     def shopping_cart_delete(self, request, pk=None):
@@ -110,8 +99,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         url_name='favorite'
     )
     def favorite(self, request, pk):
-        model = Favorite
-        return self.create_favorite_or_cart(model, pk, request)
+        serializer_class = FavoriteSerializer
+        return self.create_favorite_or_cart(serializer_class, pk, request)
 
     @favorite.mapping.delete
     def favorite_delete(self, request, pk):
@@ -159,21 +148,14 @@ class UserViewSet(UserViewSet):
         user = request.user
         author = get_object_or_404(User, pk=id)
         subscription = user.sub_user.filter(author=author)
+        data = {'user': user.id, 'author': id}
+        serializer = SubscriptionCreateSerializer(data=data, context={'request': request})
         if request.method == 'POST':
-            if user == author:
-                return Response(
-                    {'message': SELF_SUB},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if subscription.exists():
-                return Response(
-                    {'message': DOUBLE_SUB},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            serializer = SubscriptionSerializer(
-                author, context={'request': request}
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            serializer = SubscriptionSerializer( 
+                author, context={'request': request} 
             )
-            Follow.objects.create(user=user, author=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':

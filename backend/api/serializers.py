@@ -12,28 +12,22 @@ from user.models import Follow
 User = get_user_model()
 
 
-class IsSubscribedMethod:
-
-    def is_subscribed_field(self):
-        return serializers.SerializerMethodField(read_only=True)
-
-    def get_is_subscribed(self, obj):
-        request = self.context.get('request')
-        return bool(
-            request and request.user.is_authenticated
-            and request.user.sub_user.filter(author=obj).exists()
-        )
-
-
-class UserReadSerializer(UserSerializer, IsSubscribedMethod):
+class UserReadSerializer(serializers.ModelSerializer):
     """Сериализатор для модели User."""
-    is_subscribed = IsSubscribedMethod().is_subscribed_field()
+    is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
             'id', 'username', 'first_name',
             'last_name', 'email', 'is_subscribed'
+        )
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        return bool(
+            request and request.user.is_authenticated
+            and request.user.sub_user.filter(author=obj).exists()
         )
 
 
@@ -159,14 +153,14 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def create_ingredients(recipe, ingredients):
+        ingredients_to_create = []
         for ingredient_data in ingredients:
             ingredient = ingredient_data['id']
             amount = ingredient_data['amount']
-            IngredientRecipe.objects.create(
-                recipe=recipe,
-                ingredient=ingredient,
-                amount=amount
+            ingredients_to_create.append(
+                IngredientRecipe(recipe=recipe, ingredient=ingredient, amount=amount)
             )
+        IngredientRecipe.objects.bulk_create(ingredients_to_create)
 
     @transaction.atomic
     def create(self, validated_data):
@@ -240,9 +234,7 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class SubscriptionSerializer(serializers.ModelSerializer,
-                             IsSubscribedMethod):
-    is_subscribed = IsSubscribedMethod().is_subscribed_field()
+class SubscriptionSerializer(UserReadSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
 
@@ -272,7 +264,6 @@ class SubscriptionSerializer(serializers.ModelSerializer,
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
-    recipe = ShortRecipeSerializer()
 
     class Meta:
         model = Favorite
@@ -286,11 +277,16 @@ class FavoriteSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        return super().to_representation(instance)
+        serializer = ShortRecipeSerializer(
+            instance.recipe,
+            context={
+                'request': self.context['request']
+            }
+        )
+        return serializer.data
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
-    recipe = ShortRecipeSerializer()
 
     class Meta:
         model = ShoppingCart
@@ -304,13 +300,26 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        return super().to_representation(instance)
+        serializer = ShortRecipeSerializer(
+            instance.recipe,
+            context={
+                'request': self.context['request']
+            }
+        )
+        return serializer.data
 
 
 class SubscriptionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
         fields = ('author', 'user')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=('author', 'user'),
+                message='Вы уже подписаны на этого пользователя',
+            )
+        ]
 
     def validate_author(self, value):
         request = self.context.get('request')
@@ -318,9 +327,5 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
         if value == user:
             raise serializers.ValidationError(
                 'Вы не можете подписаться на себя'
-            )
-        if Follow.objects.filter(user=user, author=value).exists():
-            raise serializers.ValidationError(
-                'Вы уже подписаны на этого пользователя'
             )
         return value
