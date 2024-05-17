@@ -1,12 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count
-from djoser.serializers import UserSerializer
 from drf_base64.fields import Base64ImageField
-from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                            ShoppingCart, Tag)
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
+
+from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                            ShoppingCart, Tag)
 from user.models import Follow
 
 User = get_user_model()
@@ -158,7 +158,11 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             ingredient = ingredient_data['id']
             amount = ingredient_data['amount']
             ingredients_to_create.append(
-                IngredientRecipe(recipe=recipe, ingredient=ingredient, amount=amount)
+                IngredientRecipe(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    amount=amount
+                )
             )
         IngredientRecipe.objects.bulk_create(ingredients_to_create)
 
