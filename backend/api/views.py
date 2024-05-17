@@ -40,13 +40,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
-<<<<<<< HEAD
     def create_favorite_or_cart(self, serializer_class, pk, request):
-=======
-# Не получается реализовать добавление в избр и корзину через сериализаторы
-# Не совсем понимаю как это реализовать
-    def create_favorite_or_cart(self, model, pk, request):
->>>>>>> b591ea08a364439f36d6f421a9ba00ab67ebe995
         user = request.user
         data = {'user': user.id, 'recipe': pk}
         serializer = serializer_class(data=data, context={'request': request})
