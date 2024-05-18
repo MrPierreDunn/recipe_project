@@ -4,8 +4,7 @@ from django.db.models import Count
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
-from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                            ShoppingCart, Tag)
+from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag)
 from user.models import Follow
 
 User = get_user_model()
