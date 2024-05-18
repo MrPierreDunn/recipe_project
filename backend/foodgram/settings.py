@@ -12,7 +12,6 @@ load_dotenv(ENV_PATH)
 
 SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 
-
 DEBUG = os.getenv('DEBUG', default=False) == 'True'
 
 ALLOWED_HOSTS = os.getenv(
@@ -119,6 +118,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'collected_static'
+STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
 
 
 MEDIA_ROOT = BASE_DIR / 'media'
