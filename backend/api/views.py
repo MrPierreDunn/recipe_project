@@ -138,36 +138,35 @@ class UserViewSet(UserViewSet):
 
     @action(
         detail=True,
-        methods=['post'],
+        methods=('post', 'delete'),
+        permission_classes=(IsAuthenticated,),
         url_name='subscribe'
     )
-    def subscribe(self, request, pk=None):
+    def subscribe(self, request, id):
         user = request.user
-        author = get_object_or_404(User, pk=pk)
-        data = {'user': user.id, 'author': pk}
+        author = get_object_or_404(User, pk=id)
+        subscription = user.sub_user.filter(author=author)
+        data = {'user': user.id, 'author': id}
         serializer = SubscriptionCreateSerializer(
             data=data,
             context={'request': request}
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        serializer = SubscriptionSerializer(
-            author, context={'request': request}
-        )
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @subscribe.mapping.delete
-    def unsubscribe(self, request, pk=None):
-        user = request.user
-        author = get_object_or_404(User, pk=pk)
-        subscription = user.sub_user.filter(author=author)
-        deleted_count, _ = subscription.delete()
-        if deleted_count == 0:
-            return Response(
-                {'message': NO_EXIST_SUB},
-                status=status.HTTP_400_BAD_REQUEST
+        if request.method == 'POST':
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            serializer = SubscriptionSerializer(
+                author, context={'request': request}
             )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if request.method == 'DELETE':
+            deleted_count, _ = subscription.delete()
+            if deleted_count == 0:
+                return Response(
+                    {'message': NO_EXIST_SUB},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
