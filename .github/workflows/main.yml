@@ -107,6 +107,10 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
+    - name: List files for debugging
+      run: ls -la
+    - name: Check for docker-compose.production.yml
+      run: test -f docker-compose.production.yml && echo "File exists" || echo "File does not exist"
     - name: Copy docker-compose.yml via ssh
       uses: appleboy/scp-action@master
       with:
